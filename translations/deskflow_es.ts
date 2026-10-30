@@ -136,6 +136,41 @@ p, li { white-space: pre-wrap; }
     </message>
 </context>
 <context>
+    <name>AppListWidget</name>
+    <message>
+        <source>Add running application...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Pick from the applications that have a window open right now</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Add by name...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Type the executable name, e.g. eldenring.exe</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove the selected applications</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Add application</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Executable name or path (e.g. eldenring.exe):</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>ClientConfigDialog</name>
     <message>
         <source>Client Configuration</source>
@@ -410,6 +445,58 @@ Do you want to connect to the server?
     <message>
         <source>Invalid hash format</source>
         <translation type="unfinished">Formato hash no válido</translation>
+    </message>
+</context>
+<context>
+    <name>GameLockWidget</name>
+    <message>
+        <source>Keep the cursor on this computer while a game runs</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Pauses switching at the screen edges while a game runs on this computer, so hitting an edge in the middle of a game does not move the cursor to another computer.
+Set this up on the computer that runs the game, whether it is the server or a client. The switch hotkeys and the lock cursor hotkey keep working while the cursor is held here.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Lock while:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Any application runs fullscreen</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Lock while the application in front covers its whole monitor: fullscreen and borderless games, fullscreen video, presentations. Maximized windows do not count.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>One of the selected applications runs fullscreen</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Lock only while one of the selected applications is in front</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Selected applications:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Lock for the selected applications even when they are not fullscreen</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>For games that run in a normal window</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Never lock for:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>These applications never hold the cursor, even fullscreen, e.g. a browser you watch videos in. This list wins over the selected applications.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -923,6 +1010,33 @@ Además, verifique que puede %1 el archivo de configuración del servidor: %2</t
     </message>
 </context>
 <context>
+    <name>RunningAppsDialog</name>
+    <message>
+        <source>Add running application</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Start the game, then pick it here. If a launcher starts the game, pick the game&apos;s own window, not the launcher.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Filter by window title or executable</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Refresh the list of running applications</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Window</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Executable</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>SearchWidget</name>
     <message>
         <source>Search</source>
@@ -1290,6 +1404,10 @@ Al habilitar esta opción, se deshabilitará la interfaz gráfica de usuario (GU
     <message>
         <source>Remove all settings</source>
         <translation type="unfinished">Eliminar todas las configuraciones</translation>
+    </message>
+    <message>
+        <source>Ga&amp;me lock</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>

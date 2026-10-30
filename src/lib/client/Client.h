@@ -17,13 +17,15 @@
 #include "net/NetworkAddress.h"
 
 #include <climits>
+#include <memory>
 #include <string>
 
 class Event;
 class EventQueueTimer;
 namespace deskflow {
 class Computer;
-}
+class GameLockMonitor;
+} // namespace deskflow
 class ServerProxy;
 class IDataSocket;
 class ISocketFactory;
@@ -214,6 +216,7 @@ private:
   void handleShapeChanged();
   void handleClipboardGrabbed(const Event &event);
   void handleHello();
+  void startGameLock();
   void handleSuspend();
   void handleResume();
   void sendClipboardThread(void *);
@@ -244,4 +247,5 @@ private:
   int32_t m_relativeRestoreY = 0;
   size_t m_maximumClipboardSize = INT_MAX;
   size_t m_resolvedAddressesCount = 0;
+  std::unique_ptr<deskflow::GameLockMonitor> m_gameLockMonitor;
 };

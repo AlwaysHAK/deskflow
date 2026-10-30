@@ -28,3 +28,10 @@ create_test(
   SOURCE KeySequenceTests.cpp
   WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/src/lib/common"
 )
+
+create_test(
+  NAME GameLockPolicyTests
+  DEPENDS common
+  SOURCE GameLockPolicyTests.cpp
+  WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/src/lib/common"
+)

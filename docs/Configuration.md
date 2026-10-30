@@ -90,6 +90,25 @@ This section contains options used by the daemon on windows it will begin with `
 | logFile   | Filepath          | Filepath of the daemon log |
 | logLevel  | valid log Level,  | Log Level  |
 
+### Game Lock
+
+This section contains the game lock options of this computer, it will begin with `[gameLock]`.
+Game lock keeps the cursor on this computer while a game runs, so reaching a screen edge in the middle of a game does not move the cursor to another computer.
+Set it up on the computer that runs the game, whether it is the server or a client. Game lock is only available on Windows, and a client needs a server that speaks protocol 1.9 or later.
+
+|Option        | Valid Values      |Description|
+|:-------------|:-----------------:|:-----------|
+| enabled      | `true` or `false` | Hold the cursor on this computer while a matching application is in front [default: false] |
+| mode         | `any` or `selected` | `any`: lock while the application in front covers its whole monitor, such as fullscreen and borderless games or fullscreen video. Maximized windows with a title bar do not count. `selected`: lock only for the applications listed in `apps` [default: any] |
+| apps         | Comma separated list of executable names | Applications that lock in `selected` mode, e.g. `eldenring.exe, cs2.exe`. Names are matched without regard to case; a name without an extension gets `.exe` added |
+| ignore       | Comma separated list of executable names | Applications that never lock, even when fullscreen, e.g. `chrome.exe`. This list wins over `apps` |
+| whenWindowed | `true` or `false` | In `selected` mode, also lock while a selected application runs in a normal window [default: false] |
+
+ - The switch hotkeys and the lock cursor hotkey keep working while game lock holds the cursor.
+ - The server's `disableLockToComputer` option turns game lock off for every computer.
+ - If a launcher starts the game, list the game's own executable, not the launcher.
+ - Applications whose executable name can't be read (some elevated or anti-cheat protected games) count as fullscreen applications in `any` mode, but never match `apps` or `ignore`.
+
 ### GUI
 
 This section contains options used by the GUI it will begin with `[gui]`
@@ -139,7 +158,7 @@ This section contains options used when in server mode it will begin with `[serv
 |:-------------------|:-----------------:|:-----------|
 | clipboardSize      | int > 0           | Deskflow will send a maximum of `N` megabytes of clipboard data to another computer when the mouse transitions to that computer. Clients use the server's value for both sending and receiving.|
 | defaultLockToComputerState| `true` or `false` | When this is true the cursor is locked to the new computer when switching (default: false)|
-| disableLockToComputer| `true` or `false` | If false pressing scroll lock will toggle your cursor to be locked to current computer. (default: false) |
+| disableLockToComputer| `true` or `false` | If false pressing scroll lock will toggle your cursor to be locked to current computer. When true, game lock is off as well. (default: false) |
 | enableClipboard    | `true` or `false` | When `true` the clipboard will be shared with all clients If set to ''true'' then clipboard shared and the ''clipboardSharingSize'' setting will be used. If set to false, then clipboard sharing will be disabled and the the ''clipboardSharingSize'' setting will be ignored.|
 | enableHeartbeat    | `true` or `false` | Send a heartbeat to connected clients; this has been replaced by internal keep alive (default: false)|
 | enableSwitchDelay  | `true` or `false` | Switching will be delayed by the set value (default: false)|

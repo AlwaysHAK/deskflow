@@ -10,6 +10,8 @@
 #include "base/IEventQueue.h"
 #include "client/Client.h"
 #include "client/ServerProxy.h"
+#include "client/ServerProxy1_8.h"
+#include "client/ServerProxy1_9.h"
 #include "deskflow/AppUtil.h"
 #include "deskflow/ProtocolTypes.h"
 #include "io/IStream.h"
@@ -23,6 +25,7 @@
 #include <functional>
 #include <map>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -79,8 +82,14 @@ public:
     return static_cast<uint32_t>(bytesToRead);
   }
 
-  void write(const void *, uint32_t) override
+  void write(const void *buffer, uint32_t size) override
   {
+    m_written.append(static_cast<const char *>(buffer), size);
+  }
+
+  std::string takeWritten()
+  {
+    return std::exchange(m_written, {});
   }
 
   void flush() override
@@ -117,6 +126,7 @@ public:
 
 private:
   std::deque<std::string> m_chunks;
+  std::string m_written;
   bool m_inputShutdown = false;
 };
 
@@ -326,6 +336,34 @@ void ServerProxyTests::parseHandshakeMessage_protocolError_queuesRefusalRequest(
   QVERIFY(request->kind() == Client::DisconnectRequest::Kind::Refuse);
   QVERIFY(request->refusalReason() == deskflow::core::ConnectionRefusal::ProtocolError);
   QCOMPARE(QString::fromUtf8(request->message()), QStringLiteral("server reported a protocol error"));
+}
+
+void ServerProxyTests::sendGameLock_protocol19_writesMessage()
+{
+  RecordingEventQueue events;
+  FakeStream stream;
+  ServerProxy1_9 proxy(undereferenceableClient(), &stream, &events);
+
+  QVERIFY(proxy.isGameLockSupported());
+  proxy.sendGameLock(true);
+  QCOMPARE(stream.takeWritten(), std::string("CGLK\x01", 5));
+  proxy.sendGameLock(false);
+  QCOMPARE(stream.takeWritten(), std::string("CGLK\x00", 5));
+}
+
+void ServerProxyTests::sendGameLock_olderServer_writesNothing()
+{
+  RecordingEventQueue events;
+  FakeStream stream;
+  ServerProxy proxy16(undereferenceableClient(), &stream, &events);
+  ServerProxy1_8 proxy18(undereferenceableClient(), &stream, &events);
+
+  QVERIFY(!proxy16.isGameLockSupported());
+  QVERIFY(!proxy18.isGameLockSupported());
+  proxy16.sendGameLock(true);
+  proxy18.sendGameLock(true);
+
+  QVERIFY(stream.takeWritten().empty());
 }
 
 QTEST_MAIN(ServerProxyTests)

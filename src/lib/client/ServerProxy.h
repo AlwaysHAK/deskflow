@@ -1,6 +1,6 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * SPDX-FileCopyrightText: (C) 2025 Deskflow Developers
+ * SPDX-FileCopyrightText: (C) 2025 - 2026 Deskflow Developers
  * SPDX-FileCopyrightText: (C) 2012 - 2016, 2026 Synergy App Ltd
  * SPDX-FileCopyrightText: (C) 2002 Chris Schoeneman
  * SPDX-License-Identifier: GPL-2.0-only WITH LicenseRef-OpenSSL-Exception
@@ -50,6 +50,19 @@ public:
   void onInfoChanged();
   bool onGrabClipboard(ClipboardID);
   void onClipboardChanged(ClipboardID, const IClipboard *);
+
+  //! Tell the server whether a game holds the cursor on this computer
+  /*!
+  Servers before protocol 1.9 don't know game lock, so nothing is sent to them.
+  */
+  virtual void sendGameLock(bool locked);
+
+  //@}
+  //! @name accessors
+  //@{
+
+  //! True if the server understands game lock (protocol 1.9 and later)
+  virtual bool isGameLockSupported() const;
 
   //@}
 

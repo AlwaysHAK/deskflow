@@ -28,6 +28,8 @@ add_library(${target} STATIC
   MainWindow.ui
   Messages.cpp
   Messages.h
+  RunningApps.cpp
+  RunningApps.h
   StyleUtils.h
   TlsUtility.cpp
   TlsUtility.h
@@ -63,6 +65,8 @@ add_library(${target} STATIC
   dialogs/HotkeyDialog.cpp
   dialogs/HotkeyDialog.h
   dialogs/HotkeyDialog.ui
+  dialogs/RunningAppsDialog.cpp
+  dialogs/RunningAppsDialog.h
   dialogs/ServerConfigDialog.cpp
   dialogs/ServerConfigDialog.h
   dialogs/ServerConfigDialog.ui
@@ -95,10 +99,14 @@ add_library(${target} STATIC
   validators/ValidationError.h
   validators/IpAddressValidator.cpp
   validators/IpAddressValidator.h
+  widgets/AppListWidget.cpp
+  widgets/AppListWidget.h
   widgets/ComputerSetupView.cpp
   widgets/ComputerSetupView.h
   widgets/FingerprintPreview.cpp
   widgets/FingerprintPreview.h
+  widgets/GameLockWidget.cpp
+  widgets/GameLockWidget.h
   widgets/KeySequenceWidget.cpp
   widgets/KeySequenceWidget.h
   widgets/LogDock.cpp
@@ -124,3 +132,8 @@ target_link_libraries(${target}
     net
     Qt6::Widgets
 )
+
+# window cloaking, used to list running applications for game lock
+if(WIN32)
+  target_link_libraries(${target} PRIVATE dwmapi)
+endif()

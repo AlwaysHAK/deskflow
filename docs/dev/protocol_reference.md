@@ -146,6 +146,7 @@ This table lists all protocol messages in alphabetical order. For a typical sequ
 | [**CALV**](@ref kMsgCKeepAlive) | @ref kMsgCKeepAlive | Command | Both | Keep-alive | [MsgSize](#constraint-protocol-max-message-length), [KeepAlive](#constraint-keep-alive) | 1.3+ |
 | [**CBYE**](@ref kMsgCClose) | @ref kMsgCClose | Command | Server→Client | Close connection | [MsgSize](#constraint-protocol-max-message-length) | 1.0+ |
 | [**CCLP**](@ref kMsgCClipboard) | @ref kMsgCClipboard | Command | Both | Clipboard ownership notification | [MsgSize](#constraint-protocol-max-message-length) | 1.0+ |
+| [**CGLK**](@ref kMsgCGameLock) | @ref kMsgCGameLock | Command | Client→Server | Game lock state | [MsgSize](#constraint-protocol-max-message-length) | 1.9+ |
 | [**CIAK**](@ref kMsgCInfoAck) | @ref kMsgCInfoAck | Command | Server→Client | Acknowledge info message | [MsgSize](#constraint-protocol-max-message-length) | 1.0+ |
 | [**CINN**](@ref kMsgCEnter) | @ref kMsgCEnter | Command | Server→Client | Enter computer | [MsgSize](#constraint-protocol-max-message-length), [ComputerEntrySync](#constraint-computer-entry-sync) | 1.0+ |
 | [**CNOP**](@ref kMsgCNoop) | @ref kMsgCNoop | Command | Both | No operation | [MsgSize](#constraint-protocol-max-message-length) | 1.0+ |
@@ -292,6 +293,7 @@ A modifier (modifier mask) represents the state of modifier keys (like Shift, Co
 | **1.6** | Jan 2014 | Synergy | Clipboard streaming | 1.6+ |
 | **1.7** | Sep 2021 | Synergy | Secure input notifications | 1.7+ |
 | **1.8** | Nov 2021 | Synergy | Language synchronization | 1.8+ |
+| **1.9** | Unreleased | Deskflow | Game lock (@ref kMsgCGameLock) | 1.9+ |
 
 ### Version Migration Guide
 
@@ -317,7 +319,7 @@ std::string server_version, server_name;
 parse_hello(hello, &server_version, &server_name);
 
 // 3. Send HelloBack to server
-std::string client_version = "1.8";
+std::string client_version = "1.9";
 std::string client_name = "MyClient";
 send_hello_back(client_version, client_name);
 
@@ -370,7 +372,7 @@ Client                                 Server
   |                                      | TCP connection established
   |                                      |
   | ◄─────────────────────────────────── |
-  | "Deskflow" + version (1.8)           | Hello message
+  | "Deskflow" + version (1.9)           | Hello message
   |                                      |
   | "Deskflow" + version + name          |
   | ───────────────────────────────────► | HelloBack message

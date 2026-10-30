@@ -11,10 +11,12 @@
 #include "common/PlatformInfo.h"
 #include "ui_SettingsDialog.h"
 
+#include "common/GameLockPolicy.h"
 #include "common/I18N.h"
 #include "common/Settings.h"
 #include "gui/TlsUtility.h"
 #include "gui/core/NetworkMonitor.h"
+#include "gui/widgets/GameLockWidget.h"
 #include "gui/widgets/SettingsDialogButtonBox.h"
 
 #include <QComboBox>
@@ -33,6 +35,13 @@ SettingsDialog::SettingsDialog(QWidget *parent, const ServerConfig &serverConfig
 
   ui->setupUi(this);
   layout()->addWidget(m_buttonBox);
+
+  // game lock only exists where the foreground window can be detected
+  if (deskflow::GameLockPolicy::isSupported()) {
+    m_gameLock = new GameLockWidget(this);
+    ui->tabWidget->insertTab(ui->tabWidget->indexOf(ui->tabAdvanced), m_gameLock, QString());
+  }
+
   ui->tabWidget->setCurrentIndex(0);
 
   // these are enabled by the control next to them
@@ -143,6 +152,9 @@ void SettingsDialog::initConnections() const
   connect(ui->lineCommandEnter, &QLineEdit::textChanged, this, &SettingsDialog::setButtonBoxEnabledButtons);
   connect(ui->lineCommandExit, &QLineEdit::textChanged, this, &SettingsDialog::setButtonBoxEnabledButtons);
   connect(Settings::instance(), &Settings::settingsWritableChanged, this, &SettingsDialog::updateControls);
+
+  if (m_gameLock != nullptr)
+    connect(m_gameLock, &GameLockWidget::changed, this, &SettingsDialog::setButtonBoxEnabledButtons);
 }
 
 void SettingsDialog::regenCertificates()
@@ -200,6 +212,9 @@ void SettingsDialog::resetAllSettings()
 
 void SettingsDialog::updateText()
 {
+  if (m_gameLock != nullptr)
+    ui->tabWidget->setTabText(ui->tabWidget->indexOf(m_gameLock), tr("Ga&me lock"));
+
   const auto logLevels = LogLevel::logLevelNames().count();
   const QStringList toolTips = {tr("Required messages"),        tr("Non-fatal errors"), tr("General warnings"),
                                 tr("General events [Default]"), tr("Debug entries"),    tr("Verbose debug output")};
@@ -249,6 +264,9 @@ void SettingsDialog::accept()
   else
     mode = Settings::ProcessMode::Desktop;
   Settings::setValue(Settings::Core::ProcessMode, mode);
+
+  if (m_gameLock != nullptr)
+    m_gameLock->save();
 
   QDialog::accept();
 }
@@ -301,6 +319,9 @@ void SettingsDialog::loadFromConfig()
   } else {
     m_interfaceSetOnLoad = true;
   }
+
+  if (m_gameLock != nullptr)
+    m_gameLock->load();
 
   qDebug() << "load from config done";
 
@@ -402,6 +423,9 @@ void SettingsDialog::updateControls()
 
   ui->widgetLogFilename->setEnabled(writable && logToFile);
 
+  if (m_gameLock != nullptr)
+    m_gameLock->setWritable(writable);
+
   updateTlsControls();
 }
 
@@ -448,6 +472,8 @@ bool SettingsDialog::isModified() const
 
   if (!ignoreInterface)
     modified = modified || ui->comboInterface->currentText() != Settings::value(Settings::Core::Interface).toString();
+  if (m_gameLock != nullptr)
+    modified = modified || m_gameLock->isModified();
   return modified;
 }
 
@@ -480,7 +506,7 @@ bool SettingsDialog::isDefault() const
       (ui->lineCommandExit->text() == Settings::defaultValue(Settings::Core::ComputerExitCommand).toString()) &&
       (ui->cbRunEnterCommand->isChecked() == Settings::defaultValue(Settings::Core::EnableEnterCommand).toBool()) &&
       (ui->cbRunExitCommand->isChecked() == Settings::defaultValue(Settings::Core::EnableExitCommand).toBool()) &&
-      (ui->comboLanguage->currentText() == "English")
+      (ui->comboLanguage->currentText() == "English") && (m_gameLock == nullptr || m_gameLock->isDefault())
   );
 }
 
@@ -524,6 +550,9 @@ void SettingsDialog::resetToDefault()
   ui->lblDebugWarning->setVisible(false);
 
   ui->comboInterface->setCurrentIndex(0);
+
+  if (m_gameLock != nullptr)
+    m_gameLock->resetToDefault();
 
   qDebug() << "reset to default values";
   updateControls();
