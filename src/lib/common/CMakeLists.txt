@@ -15,6 +15,9 @@ add_library(common STATIC
   Coordinate.h
   Enums.h
   ExitCodes.h
+  ForegroundWindow.h
+  GameLockPolicy.cpp
+  GameLockPolicy.h
   Hotkey.cpp
   Hotkey.h
   I18N.h

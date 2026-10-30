@@ -1,5 +1,6 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
+ * SPDX-FileCopyrightText: (C) 2026 Deskflow Developers
  * SPDX-FileCopyrightText: (C) 2025 - 2026 Chris Rizzitello <sithlord48@gmail.com>
  * SPDX-FileCopyrightText: (C) 2016 - 2025 Synergy App Ltd
  * SPDX-License-Identifier: GPL-2.0-only WITH LicenseRef-OpenSSL-Exception
@@ -69,6 +70,14 @@ public:
     inline static const auto Elevate = QStringLiteral("daemon/elevate");
     inline static const auto LogFile = QStringLiteral("daemon/logFile");
     inline static const auto LogLevel = QStringLiteral("daemon/logLevel");
+  };
+  struct GameLock
+  {
+    inline static const auto Enabled = QStringLiteral("gameLock/enabled");
+    inline static const auto Mode = QStringLiteral("gameLock/mode");
+    inline static const auto Apps = QStringLiteral("gameLock/apps");
+    inline static const auto Ignore = QStringLiteral("gameLock/ignore");
+    inline static const auto WhenWindowed = QStringLiteral("gameLock/whenWindowed");
   };
   struct Gui
   {
@@ -265,6 +274,7 @@ private:
       QStringLiteral("client")
     , QStringLiteral("core")
     , QStringLiteral("daemon")
+    , QStringLiteral("gameLock")
     , QStringLiteral("gui")
     , QStringLiteral("log")
     , QStringLiteral("security")
@@ -298,6 +308,11 @@ private:
     , Daemon::Elevate
     , Daemon::LogFile
     , Daemon::LogLevel
+    , GameLock::Enabled
+    , GameLock::Mode
+    , GameLock::Apps
+    , GameLock::Ignore
+    , GameLock::WhenWindowed
     , Log::File
     , Log::Level
     , Log::ToFile
@@ -353,6 +368,8 @@ private:
     , Client::InvertXScroll
     , Client::LanguageSync
     , Client::XdpClipboardRetried
+    , GameLock::Enabled
+    , GameLock::WhenWindowed
     , Log::ToFile
     , Log::GuiDebug
     , Server::DefaultLockToComputerState
