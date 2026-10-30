@@ -11,6 +11,7 @@
 
 #include "gui/config/ServerConfig.h"
 
+class GameLockWidget;
 class SettingsDialogButtonBox;
 
 namespace Ui {
@@ -87,4 +88,5 @@ private:
   std::unique_ptr<Ui::SettingsDialog> ui;
   const ServerConfig &m_serverConfig;
   SettingsDialogButtonBox *m_buttonBox = nullptr;
+  GameLockWidget *m_gameLock = nullptr;
 };
