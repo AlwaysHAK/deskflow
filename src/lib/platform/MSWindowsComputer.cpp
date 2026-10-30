@@ -30,8 +30,12 @@
 
 #include <Shlobj.h>
 #include <algorithm>
+#include <array>
+#include <cctype>
 #include <comutil.h>
+#include <shellapi.h>
 #include <string.h>
+#include <string_view>
 
 // suppress warning about GetVersionEx, which is used indirectly in this
 // compilation unit.
@@ -145,6 +149,7 @@ MSWindowsComputer::~MSWindowsComputer()
   if (m_isEnabled) {
     disable();
   }
+  watchForegroundWindow(false);
   m_events->adoptBuffer(nullptr);
   m_events->removeHandler(EventTypes::System, m_events->getSystemTarget());
   delete m_keyState;
@@ -1720,6 +1725,165 @@ std::string MSWindowsComputer::getSecureInputApp() const
 {
   // ignore on Windows
   return "";
+}
+
+void MSWindowsComputer::watchForegroundWindow(bool watch)
+{
+  if (watch == (m_foregroundHook != nullptr)) {
+    return;
+  }
+
+  if (!watch) {
+    UnhookWinEvent(m_foregroundHook);
+    m_foregroundHook = nullptr;
+    return;
+  }
+
+  // out of context: the callback runs in our own message loop, so nothing is injected into
+  // other processes (games and their anti-cheat included)
+  m_foregroundHook = SetWinEventHook(
+      EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND, nullptr, &MSWindowsComputer::onForegroundChanged, 0, 0,
+      WINEVENT_OUTOFCONTEXT
+  );
+  if (m_foregroundHook == nullptr) {
+    // game lock still notices the change on its next poll
+    LOG_WARN("unable to watch the foreground window, error %d", GetLastError());
+  }
+}
+
+void CALLBACK MSWindowsComputer::onForegroundChanged(HWINEVENTHOOK, DWORD, HWND, LONG, LONG, DWORD, DWORD)
+{
+  if (s_computer != nullptr) {
+    s_computer->sendEvent(EventTypes::ComputerForegroundChanged);
+  }
+}
+
+deskflow::ForegroundWindow MSWindowsComputer::foregroundWindow() const
+{
+  deskflow::ForegroundWindow result;
+
+  HWND window = GetForegroundWindow();
+  if (window == nullptr || window == GetDesktopWindow() || window == GetShellWindow() || !IsWindowVisible(window) ||
+      IsIconic(window)) {
+    return result;
+  }
+
+  // the desktop, the taskbars, alt-tab and task view cover a monitor too
+  static const std::array<std::wstring_view, 7> s_shellClasses = {
+      L"Progman",
+      L"WorkerW",
+      L"Shell_TrayWnd",
+      L"Shell_SecondaryTrayWnd",
+      L"MultitaskingViewFrame",
+      L"XamlExplorerHostIslandWindow",
+      L"ForegroundStaging"
+  };
+  std::array<wchar_t, 64> className{};
+  if (const int length = GetClassNameW(window, className.data(), static_cast<int>(className.size()));
+      length > 0 &&
+      std::ranges::find(s_shellClasses, std::wstring_view(className.data(), length)) != s_shellClasses.end()) {
+    return result;
+  }
+
+  DWORD process = 0;
+  GetWindowThreadProcessId(window, &process);
+  if (process == GetCurrentProcessId()) {
+    return result;
+  }
+
+  if (window != m_foregroundWindow || process != m_foregroundProcess) {
+    m_foregroundWindow = window;
+    m_foregroundProcess = process;
+    m_foregroundExecutable = executableName(process);
+  }
+
+  // the gui and the daemon run in processes of their own
+  static const auto s_ownExecutables = [] {
+    std::array<std::string, 3> names = {
+        std::string(kAppId) + ".exe", std::string(kCoreBinName), std::string(kDaemonBinName) + ".exe"
+    };
+    for (auto &name : names) {
+      std::ranges::transform(name, name.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    }
+    return names;
+  }();
+  if (std::ranges::find(s_ownExecutables, m_foregroundExecutable) != s_ownExecutables.end()) {
+    return result;
+  }
+
+  result.present = true;
+  result.fullscreen = isFullscreenWindow(window);
+  result.executable = m_foregroundExecutable;
+  result.window = reinterpret_cast<std::uintptr_t>(window);
+  return result;
+}
+
+bool MSWindowsComputer::isFullscreenWindow(HWND window)
+{
+  RECT rect;
+  MONITORINFO monitor{};
+  monitor.cbSize = sizeof(monitor);
+
+  // compare against the monitor the window is mostly on, as it is now, so a borderless game
+  // on any monitor counts and a new display mode is picked up right away
+  if (!GetWindowRect(window, &rect) || !GetMonitorInfo(MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST), &monitor)) {
+    return false;
+  }
+
+  // a maximized window with a title bar covers the monitor when the taskbar auto-hides, but it
+  // is an ordinary window; games and fullscreen video drop the title bar
+  const bool hasTitleBar = (GetWindowLongPtr(window, GWL_STYLE) & WS_CAPTION) == WS_CAPTION;
+  if (hasTitleBar && IsZoomed(window)) {
+    return false;
+  }
+
+  if (const RECT &area = monitor.rcMonitor;
+      rect.left <= area.left && rect.top <= area.top && rect.right >= area.right && rect.bottom >= area.bottom) {
+    return true;
+  }
+
+  // exclusive fullscreen Direct3D games do not always report a window that covers the monitor,
+  // e.g. while the display mode is switching or when a DPI-unaware game is scaled.  the shell
+  // tracks fullscreen apps itself, so its notification state backs up the rect check.  that
+  // state belongs to the session (presentation settings set it whatever window is in front),
+  // so it is only trusted for windows without a title bar.
+  QUERY_USER_NOTIFICATION_STATE state;
+  if (hasTitleBar || FAILED(SHQueryUserNotificationState(&state))) {
+    return false;
+  }
+  return state == QUNS_RUNNING_D3D_FULL_SCREEN || state == QUNS_BUSY || state == QUNS_PRESENTATION_MODE;
+}
+
+std::string MSWindowsComputer::executableName(DWORD pid) const
+{
+  std::wstring path(32768, L'\0');
+  auto size = static_cast<DWORD>(path.size());
+  HANDLE process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
+  const bool queried = process != nullptr && QueryFullProcessImageNameW(process, 0, path.data(), &size);
+  const auto error = GetLastError();
+  if (process != nullptr) {
+    CloseHandle(process);
+  }
+
+  if (!queried) {
+    // some elevated or anti-cheat protected games refuse even this limited query, game lock then
+    // treats the window as an app without a name
+    if (pid != m_unnamedProcessLogged) {
+      LOG_DEBUG("unable to read the executable name of process %d, error %d", pid, error);
+      m_unnamedProcessLogged = pid;
+    }
+    return {};
+  }
+
+  path.resize(size);
+  auto name = path.substr(path.find_last_of(L"\\/") + 1);
+  CharLowerBuffW(name.data(), static_cast<DWORD>(name.size()));
+
+  const auto length = static_cast<int>(name.size());
+  const int utf8Length = WideCharToMultiByte(CP_UTF8, 0, name.data(), length, nullptr, 0, nullptr, nullptr);
+  std::string utf8(utf8Length, '\0');
+  WideCharToMultiByte(CP_UTF8, 0, name.data(), length, utf8.data(), utf8Length, nullptr, nullptr);
+  return utf8;
 }
 
 bool MSWindowsComputer::isModifierRepeat(KeyModifierMask oldState, KeyModifierMask state, WPARAM wParam) const

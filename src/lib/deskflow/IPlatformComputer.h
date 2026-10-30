@@ -1,6 +1,6 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * SPDX-FileCopyrightText: (C) 2025 Deskflow Developers
+ * SPDX-FileCopyrightText: (C) 2025 - 2026 Deskflow Developers
  * SPDX-FileCopyrightText: (C) 2012 - 2016 Synergy App Ltd
  * SPDX-FileCopyrightText: (C) 2002 Chris Schoeneman
  * SPDX-License-Identifier: GPL-2.0-only WITH LicenseRef-OpenSSL-Exception
@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "common/ForegroundWindow.h"
 #include "deskflow/ClipboardTypes.h"
 #include "deskflow/IComputer.h"
 #include "deskflow/IKeyState.h"
@@ -135,6 +136,18 @@ public:
   */
   virtual std::string getSecureInputApp() const = 0;
 
+  //! Watch the foreground window
+  /*!
+  While watching, post an \c EventTypes::ComputerForegroundChanged
+  event to the event target whenever another window comes to the
+  foreground, so game lock reacts to alt-tab without waiting for its
+  next poll.  Platforms without game lock support ignore this.
+  */
+  virtual void watchForegroundWindow(bool)
+  {
+    // do nothing
+  }
+
   //@}
   //! @name accessors
   //@{
@@ -144,6 +157,17 @@ public:
   Return true iff this computer is a primary computer.
   */
   virtual bool isPrimary() const = 0;
+
+  //! Describe the foreground window
+  /*!
+  Return what game lock needs to know about the window the user is
+  working in.  Platforms without game lock support report that no
+  window is in the foreground, so game lock never engages there.
+  */
+  virtual deskflow::ForegroundWindow foregroundWindow() const
+  {
+    return {};
+  }
 
   //@}
   // IKeyState overrides

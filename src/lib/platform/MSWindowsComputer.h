@@ -1,6 +1,6 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * SPDX-FileCopyrightText: (C) 2025 Deskflow Developers
+ * SPDX-FileCopyrightText: (C) 2025 - 2026 Deskflow Developers
  * SPDX-FileCopyrightText: (C) 2012 - 2016 Synergy App Ltd
  * SPDX-FileCopyrightText: (C) 2002 Chris Schoeneman
  * SPDX-License-Identifier: GPL-2.0-only WITH LicenseRef-OpenSSL-Exception
@@ -121,6 +121,8 @@ public:
   void setSequenceNumber(uint32_t) override;
   bool isPrimary() const override;
   std::string getSecureInputApp() const override;
+  void watchForegroundWindow(bool watch) override;
+  deskflow::ForegroundWindow foregroundWindow() const override;
 
 protected:
   // IPlatformComputer overrides
@@ -225,6 +227,16 @@ private: // HACK
 
   // check if it is a modifier key repeating message
   bool isModifierRepeat(KeyModifierMask oldState, KeyModifierMask state, WPARAM wParam) const;
+
+  // win event callback for foreground window changes, see watchForegroundWindow()
+  static void CALLBACK
+  onForegroundChanged(HWINEVENTHOOK hook, DWORD event, HWND hwnd, LONG object, LONG child, DWORD thread, DWORD time);
+
+  // true if the window covers the whole monitor it is on
+  static bool isFullscreenWindow(HWND window);
+
+  // lower case file name of the executable of process \p pid, empty if it can't be queried
+  std::string executableName(DWORD pid) const;
 
 private:
   struct HotKeyItem
@@ -336,4 +348,12 @@ private:
 
   PrimaryKeyDownList m_primaryKeyDownList;
   MSWindowsPowerManager m_powerManager;
+
+  // game lock: foreground window watch and the executable name of the last foreground
+  // window, which is asked for several times a second
+  HWINEVENTHOOK m_foregroundHook = nullptr;
+  mutable HWND m_foregroundWindow = nullptr;
+  mutable DWORD m_foregroundProcess = 0;
+  mutable std::string m_foregroundExecutable;
+  mutable DWORD m_unnamedProcessLogged = 0;
 };
