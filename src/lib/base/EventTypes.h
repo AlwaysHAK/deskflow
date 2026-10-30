@@ -111,6 +111,11 @@ enum class EventTypes : uint32_t
   */
   ClientProxyDisconnected,
 
+  /** This event is sent when the client reports a change of its game lock. The data is a
+      pointer to ClientProxy1_9::GameLockInfo.
+  */
+  ClientProxyGameLockChanged,
+
   /** This event is sent when the client has correctly responded to the hello message.
       The target is this.
   */

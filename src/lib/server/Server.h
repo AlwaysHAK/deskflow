@@ -326,6 +326,7 @@ private:
   void handleToggleComputerEvent(const Event &);
   void handleKeyboardBroadcastEvent(const Event &event);
   void handleLockCursorToComputerEvent(const Event &event);
+  void handleGameLockChanged(const Event &event, BaseClientProxy *client);
 
   // record the game lock reported by \c client (or by our own monitor for the primary)
   void setGameLock(const BaseClientProxy *client, bool locked);

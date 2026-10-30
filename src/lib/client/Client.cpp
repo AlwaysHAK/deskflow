@@ -14,11 +14,14 @@
 #include "client/ServerProxy.h"
 #include "client/ServerProxy1_7.h"
 #include "client/ServerProxy1_8.h"
+#include "client/ServerProxy1_9.h"
+#include "common/GameLockPolicy.h"
 #include "common/NetworkProtocol.h"
 #include "common/Settings.h"
 #include "deskflow/Clipboard.h"
 #include "deskflow/Computer.h"
 #include "deskflow/DeskflowException.h"
+#include "deskflow/GameLockMonitor.h"
 #include "deskflow/IPlatformComputer.h"
 #include "deskflow/PacketStreamFilter.h"
 #include "deskflow/ProtocolTypes.h"
@@ -173,7 +176,31 @@ void Client::handshakeComplete()
   if (m_relativeMouseMoves && !m_hasRelativeRestorePosition) {
     saveRelativeRestorePosition();
   }
+  startGameLock();
   sendEvent(EventTypes::ClientConnected);
+}
+
+void Client::startGameLock()
+{
+  const auto policy = deskflow::GameLockPolicy::fromSettings();
+  if (!policy.isEnabled() || m_gameLockMonitor != nullptr) {
+    return;
+  }
+  if (!deskflow::GameLockPolicy::isSupported()) {
+    LOG_WARN("game lock is not supported on this platform");
+    return;
+  }
+  if (!m_server->isGameLockSupported()) {
+    LOG_WARN("game lock is off, the server is too old for it");
+    return;
+  }
+
+  // the server only learns about changes, it starts out unlocked for every new connection
+  m_gameLockMonitor = std::make_unique<deskflow::GameLockMonitor>(
+      m_events, policy, deskflow::GameLockMonitor::depsFor(m_computer->getPlatformComputer()),
+      [this](bool locked) { m_server->sendGameLock(locked); }
+  );
+  m_gameLockMonitor->start();
 }
 
 bool Client::isConnected() const
@@ -483,6 +510,9 @@ bool Client::setupComputer(int16_t protocolMinor)
   case 8:
     m_server = new ServerProxy1_8(this, m_stream, m_events);
     break;
+  case 9:
+    m_server = new ServerProxy1_9(this, m_stream, m_events);
+    break;
   default:
     break;
   }
@@ -539,6 +569,7 @@ void Client::cleanupConnection()
 
 void Client::cleanupComputer()
 {
+  m_gameLockMonitor.reset();
   if (m_server != nullptr) {
     if (m_ready) {
       m_computer->disable();

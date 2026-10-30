@@ -24,6 +24,7 @@
 #include "net/TCPSocket.h"
 #include "server/ClientListener.h"
 #include "server/ClientProxy.h"
+#include "server/ClientProxy1_9.h"
 #include "server/ClientProxyUnknown.h"
 #include "server/PrimaryClient.h"
 
@@ -1456,6 +1457,15 @@ void Server::handleLockCursorToComputerEvent(const Event &event)
   }
 }
 
+void Server::handleGameLockChanged(const Event &event, BaseClientProxy *client)
+{
+  if (!m_clientSet.contains(client)) {
+    return;
+  }
+  const auto *info = static_cast<const ClientProxy1_9::GameLockInfo *>(event.getDataObject());
+  setGameLock(client, info->m_locked);
+}
+
 void Server::setGameLock(const BaseClientProxy *client, bool locked)
 {
   const auto name = getName(client);
@@ -1930,6 +1940,9 @@ bool Server::addClient(BaseClientProxy *client)
   m_events->addHandler(EventTypes::ClipboardChanged, client->getEventTarget(), [this, client](const auto &e) {
     handleClipboardChanged(e, client);
   });
+  m_events->addHandler(EventTypes::ClientProxyGameLockChanged, client->getEventTarget(), [this, client](const auto &e) {
+    handleGameLockChanged(e, client);
+  });
 
   // add to list
   m_clientSet.insert(client);
@@ -1960,6 +1973,7 @@ bool Server::removeClient(BaseClientProxy *client)
   m_events->removeHandler(ComputerShapeChanged, client->getEventTarget());
   m_events->removeHandler(ClipboardGrabbed, client->getEventTarget());
   m_events->removeHandler(ClipboardChanged, client->getEventTarget());
+  m_events->removeHandler(ClientProxyGameLockChanged, client->getEventTarget());
 
   // remove from list, a game lock goes with the client
   setGameLock(client, false);

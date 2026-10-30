@@ -1,5 +1,6 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
+ * SPDX-FileCopyrightText: (C) 2026 Deskflow Developers
  * SPDX-FileCopyrightText: (C) 2012 - 2016 Synergy App Ltd
  * SPDX-FileCopyrightText: (C) 2002 Chris Schoeneman
  * SPDX-License-Identifier: GPL-2.0-only WITH LicenseRef-OpenSSL-Exception
@@ -45,7 +46,7 @@ static const int16_t kProtocolMajorVersion = 1;
  * @note When incrementing the minor version, the Deskflow application version should also increment
  * @since Protocol version 1.0
  */
-static const int16_t kProtocolMinorVersion = 8;
+static const int16_t kProtocolMinorVersion = 9;
 
 /**
  * @brief Default TCP port for Deskflow connections
@@ -489,6 +490,28 @@ extern const char *const kMsgCInfoAck;
  * @since Protocol version 1.3
  */
 extern const char *const kMsgCKeepAlive;
+
+/**
+ * @brief Game lock state
+ *
+ * **Message Code**: `"CGLK"`
+ * **Direction**: Secondary → Primary
+ * **Format**: `"CGLK%1i"`
+ * **Parameters**:
+ * - `$1`: 1 while a game holds the cursor on the secondary, 0 when it lets go
+ *
+ * Sent by a secondary with game lock enabled whenever its game lock changes,
+ * and once after the handshake when a game already holds the cursor. While
+ * the secondary is the active computer and reports 1, the primary does not
+ * switch away from it when the cursor reaches an edge. Switch hotkeys still
+ * work. The state is dropped when the secondary disconnects.
+ *
+ * Only sent after the handshake completed with protocol 1.9 or later, older
+ * primaries would treat it as an unknown message.
+ *
+ * @since Protocol version 1.9
+ */
+extern const char *const kMsgCGameLock;
 
 /** @} */ // end of protocol_commands group
 
