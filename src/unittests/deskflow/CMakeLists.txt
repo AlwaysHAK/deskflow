@@ -63,3 +63,11 @@ if(BUILD_X11_SUPPORT)
   )
 endif()
 
+
+create_test(
+  NAME GameLockMonitorTests
+  DEPENDS app
+  LIBS arch base ${extra_libs}
+  SOURCE GameLockMonitorTests.cpp
+  WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/src/lib/deskflow"
+)

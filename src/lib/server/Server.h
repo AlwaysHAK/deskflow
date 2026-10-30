@@ -1,6 +1,6 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * SPDX-FileCopyrightText: (C) 2025 Deskflow Developers
+ * SPDX-FileCopyrightText: (C) 2025 - 2026 Deskflow Developers
  * SPDX-FileCopyrightText: (C) 2012 Synergy App Ltd
  * SPDX-FileCopyrightText: (C) 2002 Chris Schoeneman
  * SPDX-License-Identifier: GPL-2.0-only WITH LicenseRef-OpenSSL-Exception
@@ -16,9 +16,11 @@
 #include "deskflow/KeyTypes.h"
 #include "deskflow/MouseTypes.h"
 #include "server/Config.h"
+#include "server/CursorLock.h"
 
 #include <climits>
 #include <map>
+#include <memory>
 #include <set>
 #include <vector>
 
@@ -28,7 +30,8 @@ class PrimaryClient;
 class InputFilter;
 namespace deskflow {
 class Computer;
-}
+class GameLockMonitor;
+} // namespace deskflow
 class IEventQueue;
 class Thread;
 class ClientListener;
@@ -324,6 +327,9 @@ private:
   void handleKeyboardBroadcastEvent(const Event &event);
   void handleLockCursorToComputerEvent(const Event &event);
 
+  // record the game lock reported by \c client (or by our own monitor for the primary)
+  void setGameLock(const BaseClientProxy *client, bool locked);
+
   // event processing
   void onClipboardChanged(const BaseClientProxy *sender, ClipboardID id, uint32_t seqNum);
   void onScreensaver(bool activated);
@@ -462,8 +468,9 @@ private:
   // which we should send broadcasted keys.
   bool m_keyboardBroadcasting = false;
 
-  // computer locking (former scroll lock)
-  bool m_lockedToComputer = false;
+  // computer locking (former scroll lock) and game lock
+  deskflow::server::CursorLock m_cursorLock;
+  std::unique_ptr<deskflow::GameLockMonitor> m_gameLockMonitor;
 
   bool m_defaultLockToComputerState = false;
   bool m_disableLockToComputer = false;

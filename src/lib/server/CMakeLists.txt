@@ -32,6 +32,8 @@ add_library(server STATIC
   ClientProxyUnknown.h
   Config.cpp
   Config.h
+  CursorLock.cpp
+  CursorLock.h
   InputFilter.cpp
   InputFilter.h
   PrimaryClient.cpp

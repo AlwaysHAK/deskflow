@@ -29,6 +29,11 @@ public:
   };
 
   /**
+   * @brief true on platforms that can report the foreground window, only Windows for now
+   */
+  static bool isSupported();
+
+  /**
    * @brief Read the policy from the settings file.
    */
   static GameLockPolicy fromSettings();

@@ -1,6 +1,6 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * SPDX-FileCopyrightText: (C) 2025 Deskflow Developers.
+ * SPDX-FileCopyrightText: (C) 2025 - 2026 Deskflow Developers.
  * SPDX-FileCopyrightText: (C) 2012 Synergy App Ltd
  * SPDX-FileCopyrightText: (C) 2002 Chris Schoeneman
  * SPDX-License-Identifier: GPL-2.0-only WITH LicenseRef-OpenSSL-Exception
@@ -10,9 +10,11 @@
 
 #include "base/IEventQueue.h"
 #include "base/Log.h"
+#include "common/GameLockPolicy.h"
 #include "deskflow/AppUtil.h"
 #include "deskflow/Computer.h"
 #include "deskflow/DeskflowException.h"
+#include "deskflow/GameLockMonitor.h"
 #include "deskflow/IPlatformComputer.h"
 #include "deskflow/OptionTypes.h"
 #include "deskflow/PacketStreamFilter.h"
@@ -143,15 +145,30 @@ Server::Server(ServerConfig &config, PrimaryClient *primaryClient, deskflow::Com
   // primary computer (unless the user has disabled lock to computer in config)
   if (!m_disableLockToComputer && (m_primaryClient->getToggleMask() & KeyModifierScrollLock)) {
     LOG_INFO("scroll lock is on, locking cursor to computer");
-    m_lockedToComputer = true;
+    m_cursorLock.setManual(true);
   } else if (m_defaultLockToComputerState) {
     LOG_INFO("default computer lock is on, locking cursor to computer");
-    m_lockedToComputer = true;
+    m_cursorLock.setManual(true);
+  }
+
+  // game lock for the primary computer, clients report their own
+  if (const auto policy = deskflow::GameLockPolicy::fromSettings(); policy.isEnabled()) {
+    if (deskflow::GameLockPolicy::isSupported()) {
+      m_gameLockMonitor = std::make_unique<deskflow::GameLockMonitor>(
+          m_events, policy, deskflow::GameLockMonitor::depsFor(m_computer->getPlatformComputer()),
+          [this](bool locked) { setGameLock(m_primaryClient, locked); }
+      );
+      m_gameLockMonitor->start();
+    } else {
+      LOG_WARN("game lock is not supported on this platform");
+    }
   }
 }
 
 Server::~Server()
 {
+  m_gameLockMonitor.reset();
+
   // remove event handlers and timers
   using enum EventTypes;
   m_events->removeHandler(KeyStateKeyDown, m_inputFilter);
@@ -360,7 +377,7 @@ uint32_t Server::getActivePrimarySides() const
 bool Server::isLockedToComputerServer() const
 {
   // locked if scroll-lock is toggled on
-  return m_lockedToComputer;
+  return m_cursorLock.isManual();
 }
 
 bool Server::isLockedToComputer() const
@@ -369,9 +386,11 @@ bool Server::isLockedToComputer() const
     return false;
   }
 
-  // locked if we say we're locked
-  if (isLockedToComputerServer()) {
-    if (!m_defaultLockToComputerState) {
+  // locked if we say we're locked, or a game runs on the active computer
+  if (m_cursorLock.isLocked(getName(m_active))) {
+    if (!isLockedToComputerServer()) {
+      LOG_VERBOSE("cursor is locked to computer by game lock");
+    } else if (!m_defaultLockToComputerState) {
       LOG_INFO("cursor is locked to computer, check scroll lock key");
     }
     return true;
@@ -1421,19 +1440,27 @@ void Server::handleLockCursorToComputerEvent(const Event &event)
     break;
 
   case LockCursorToComputerInfo::kToggle:
-    newState = !m_lockedToComputer;
+    newState = !m_cursorLock.isManual();
     break;
   }
 
   // enter new state
-  if (newState != m_lockedToComputer) {
-    m_lockedToComputer = newState;
-    LOG_INFO("cursor %s current computer", m_lockedToComputer ? "locked to" : "unlocked from");
+  if (newState != m_cursorLock.isManual()) {
+    m_cursorLock.setManual(newState);
+    LOG_INFO("cursor %s current computer", newState ? "locked to" : "unlocked from");
 
     m_primaryClient->reconfigure(getActivePrimarySides());
     if (!isLockedToComputerServer()) {
       stopRelativeMoves();
     }
+  }
+}
+
+void Server::setGameLock(const BaseClientProxy *client, bool locked)
+{
+  const auto name = getName(client);
+  if (m_cursorLock.setGameLock(name, locked)) {
+    LOG_DEBUG("game lock %s on \"%s\"", locked ? "engaged" : "released", name.c_str());
   }
 }
 
@@ -1934,7 +1961,8 @@ bool Server::removeClient(BaseClientProxy *client)
   m_events->removeHandler(ClipboardGrabbed, client->getEventTarget());
   m_events->removeHandler(ClipboardChanged, client->getEventTarget());
 
-  // remove from list
+  // remove from list, a game lock goes with the client
+  setGameLock(client, false);
   m_clients.erase(getName(client));
   m_clientSet.erase(i);
 

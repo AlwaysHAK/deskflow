@@ -16,6 +16,15 @@ const auto kModeSelected = QStringLiteral("selected");
 const auto kExeSuffix = QStringLiteral(".exe");
 } // namespace
 
+bool GameLockPolicy::isSupported()
+{
+#ifdef Q_OS_WIN
+  return true;
+#else
+  return false;
+#endif
+}
+
 GameLockPolicy GameLockPolicy::fromSettings()
 {
   return fromValues(
